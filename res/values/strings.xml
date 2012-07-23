@@ -4,4 +4,6 @@
     <string name="timerDisplayDesc">The currently timed thing.</string>
     <string name="PhotoMenuString">Photo</string>
     <string name="ImageMenuString">Image</string>
+    <string name="add_timer">Add Timer</string>
+    <string name="add_timer_toast_txt">Touch screen to place timer.</string>
 </resources>

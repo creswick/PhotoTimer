@@ -1,18 +1,17 @@
 package com.ciscavate.android.phototimer;
 
-import java.util.List;
-
 import android.content.Context;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 
 public class CiscavatePagerAdapter extends PagerAdapter {
 
-    private final List<TimerPage> _pages;
+    private final AppState _appState;
     private final PhotoTimer _context;
     
     private final View.OnClickListener _onClickListener =
@@ -21,7 +20,7 @@ public class CiscavatePagerAdapter extends PagerAdapter {
         public void onClick(View v) {
             switch (v.getId()) {
             case R.id.camera_button:
-                // _context.getImage();    
+                _context.getPhoto();
                 break;
             case R.id.gallery_button:
                 _context.getImage();
@@ -35,10 +34,10 @@ public class CiscavatePagerAdapter extends PagerAdapter {
     
     private final LayoutInflater _inflater;
     
-    public CiscavatePagerAdapter(PhotoTimer ctx, List<TimerPage> pages) {
+    public CiscavatePagerAdapter(PhotoTimer ctx, AppState appState) {
         super();
         _context = ctx;
-        _pages = pages;
+        _appState = appState;
         
         _inflater = (LayoutInflater)_context.getSystemService
                 (Context.LAYOUT_INFLATER_SERVICE);
@@ -46,25 +45,17 @@ public class CiscavatePagerAdapter extends PagerAdapter {
 
     @Override
     public int getCount() {
-        synchronized (_pages) {
-            if (_pages.size() == 0) {
-                return 1;
-            } else {
-                return _pages.size() + 2;
-            }
-        }
+        return _appState.getPageCount();
     }
     
     @Override
     public Object instantiateItem(View collection, int position) {
         View view;
-        synchronized (_pages) {
-            // If this is the first or last position, show buttons:
-            if (position == 0 || position > _pages.size()) {
-                view = createButtonView();
-            } else {
-                view = createTimerView(_context, _pages.get(position - 1));
-            }
+        // If this is the first or last position, show buttons:
+        if (position == 0 || position >= (_appState.getPageCount() - 1)) {
+            view = createButtonView();
+        } else {
+            view = createTimerView(_context, _appState.getPage(position));
         }
 
         ((ViewPager) collection).addView(view, 0);
@@ -92,11 +83,11 @@ public class CiscavatePagerAdapter extends PagerAdapter {
 
     @Override
     public void destroyItem(View collection, int position, Object view) {
-            ((ViewPager) collection).removeView((View) view);
+        ((ViewPager) collection).removeView((View) view);
     }
-    
+
     @Override
     public boolean isViewFromObject(View view, Object object) {
-            return view == (View)object;
+        return view == (View) object;
     }
 }
