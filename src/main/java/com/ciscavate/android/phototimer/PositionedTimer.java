@@ -1,9 +1,9 @@
 package com.ciscavate.android.phototimer;
 
 public class PositionedTimer {
-    private final int _xLoc;
+    private final float _xLoc;
     
-    private final int _yLoc;
+    private final float _yLoc;
     
     private final int _time;
 
@@ -17,10 +17,11 @@ public class PositionedTimer {
      */
     private static int _id_counter = 0;
     
-    public PositionedTimer(int xLoc, int yLoc, int time) {
+    public PositionedTimer(float x, float y, int time) {
         super();
-        _xLoc = xLoc;
-        _yLoc = yLoc;
+        _xLoc = x;
+        _yLoc = y;
+
         _time = time;
         
         synchronized (PositionedTimer.class) {
@@ -28,11 +29,11 @@ public class PositionedTimer {
         }
     }
 
-    public int getxLoc() {
+    public float getxLoc() {
         return _xLoc;
     }
 
-    public int getyLoc() {
+    public float getyLoc() {
         return _yLoc;
     }
 

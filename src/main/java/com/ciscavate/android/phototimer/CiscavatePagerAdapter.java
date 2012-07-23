@@ -67,6 +67,11 @@ public class CiscavatePagerAdapter extends PagerAdapter {
         ImageView img = (ImageView)v.findViewById(R.id.imgView);
         
         img.setImageBitmap(timerPage.getImage());
+        
+        for (PositionedTimer timer : timerPage.getTimers()) {
+            // TODO 
+        }
+        
         return v;
     }
 

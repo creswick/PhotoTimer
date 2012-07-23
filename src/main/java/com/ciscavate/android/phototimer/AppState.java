@@ -77,4 +77,12 @@ public class AppState {
             _currentPageIdx = idx - 1;
         }
     }
+
+    public synchronized void addTimer(float x, float y, int hours, int minutes) {
+        if (null == _currentPage) {
+            Log.e("AppState", "We let the user add a timer to a bumper page");
+        }
+
+        _currentPage.addTimer(new PositionedTimer(x, y, hours * 60 + minutes));
+    }
 }

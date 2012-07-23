@@ -1,7 +1,11 @@
 package com.ciscavate.android.phototimer;
 
 import android.app.Activity;
+import android.app.Dialog;
+import android.app.TimePickerDialog;
+import android.app.TimePickerDialog.OnTimeSetListener;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -15,6 +19,10 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.TimePicker;
 import android.widget.Toast;
 
 public class PhotoTimer extends Activity {
@@ -26,6 +34,8 @@ public class PhotoTimer extends Activity {
     private AppState _appState;
 
     private PagerAdapter _pagerAdapter;
+
+ 
     
     /**
      * Called when the activity is first created.
@@ -96,12 +106,70 @@ public class PhotoTimer extends Activity {
                 getImage();
                 return true;
             case R.id.opt_menu_add_timer:
-                // TODO handle add-timer
-                _addTimerToast.show();
+                onOptMenuAddTimer();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+    
+    @Override
+    protected Dialog onCreateDialog(int id, final Bundle b) {
+        final Resources res = getResources();
+        switch (id) {
+        case R.integer.dialog_time_picker:
+            OnTimeSetListener timeListener = new OnTimeSetListener() {
+                @Override
+                public void onTimeSet(TimePicker view, int hours, int minutes) {
+                    float x = b.getFloat(res.getString(R.string.coord_x));
+                    float y = b.getFloat(res.getString(R.string.coord_y));
+                    
+                    _appState.addTimer(x, y, hours, minutes);
+                    
+                    // now remove the listener that created the dialog...
+                    ImageView imageView = (ImageView) findViewById(R.id.imgView);
+                    imageView.setOnTouchListener(new View.OnTouchListener() {
+                        @Override
+                        public boolean onTouch(View v, MotionEvent event) {
+                            return false;
+                        }
+                    });
+                }
+            };
+            
+            TimePickerDialog d = new TimePickerDialog(this, timeListener, 0, 10, true);
+            return d;
+        }
+        return super.onCreateDialog(id);
+    }
+
+    private void onOptMenuAddTimer() {
+        _addTimerToast.show();
+        
+        //ViewPager pager = (ViewPager)findViewById(R.id.timerPager);
+        ImageView imageView = (ImageView) findViewById(R.id.imgView);
+        
+        if (null == imageView) {
+            Log.e(TAG, "not looking at an image");
+            return;
+        }
+        
+        imageView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                float x = event.getX();
+                float y = event.getY();
+                Resources res = getResources();
+                
+                Log.d(TAG, "Touch event at: ("+x+","+y+")");
+                Bundle b = new Bundle();
+                b.putFloat(res.getString(R.string.coord_x), x);
+                b.putFloat(res.getString(R.string.coord_y), y);
+                
+                showDialog(R.integer.dialog_time_picker,b);
+                return false;
+            }
+        });
     }
     
     public void getImage() {
