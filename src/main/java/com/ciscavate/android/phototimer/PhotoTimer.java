@@ -127,7 +127,7 @@ public class PhotoTimer extends Activity {
                     _appState.addTimer(x, y, hours, minutes);
                     
                     // now remove the listener that created the dialog...
-                    ImageView imageView = (ImageView) findViewById(R.id.imgView);
+                    View imageView = findViewById(R.id.imgView);
                     imageView.setOnTouchListener(new View.OnTouchListener() {
                         @Override
                         public boolean onTouch(View v, MotionEvent event) {
@@ -147,7 +147,7 @@ public class PhotoTimer extends Activity {
         _addTimerToast.show();
         
         //ViewPager pager = (ViewPager)findViewById(R.id.timerPager);
-        ImageView imageView = (ImageView) findViewById(R.id.imgView);
+        View imageView = findViewById(R.id.imgView);
         
         if (null == imageView) {
             Log.e(TAG, "not looking at an image");

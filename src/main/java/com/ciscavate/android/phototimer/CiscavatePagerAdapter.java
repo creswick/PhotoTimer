@@ -63,14 +63,8 @@ public class CiscavatePagerAdapter extends PagerAdapter {
     }
     
     private View createTimerView(PhotoTimer context, TimerPage timerPage) {
-        View v = _inflater.inflate(R.layout.timer_view, null);
-        ImageView img = (ImageView)v.findViewById(R.id.imgView);
-        
-        img.setImageBitmap(timerPage.getImage());
-        
-        for (PositionedTimer timer : timerPage.getTimers()) {
-            // TODO 
-        }
+        //View v = _inflater.inflate(R.layout.timer_view, null);
+        TimerView v = new TimerView(context, timerPage);
         
         return v;
     }
