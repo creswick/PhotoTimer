@@ -2,6 +2,9 @@ package com.ciscavate.android.phototimer;
 
 import android.app.Activity;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Paint.Align;
 import android.graphics.Rect;
 import android.util.DisplayMetrics;
 import android.view.SurfaceHolder;
@@ -13,6 +16,8 @@ public class TimerView extends SurfaceView implements SurfaceHolder.Callback {
     private final TimerViewThread _thread;
     private final Rect _imageRect;
     private final Rect _canvasRect;
+    
+    private final Paint _textPaint = new Paint();
     
     public TimerView(PhotoTimer context, TimerPage timerPage) {
         super(context);
@@ -41,8 +46,17 @@ public class TimerView extends SurfaceView implements SurfaceHolder.Callback {
             scRight = bottom / displayRect.bottom * right;
         }
         _canvasRect = new Rect(0, 0, scRight, scBottom);
+        
+        initPaint();
     }
     
+    private void initPaint() {
+        _textPaint.setTextAlign(Align.LEFT);
+        _textPaint.setAntiAlias(true);
+        _textPaint.setTextSize(32);
+        _textPaint.setColor(Color.RED);
+    }
+
     private Rect getScreenDimensions(Activity context) {
         DisplayMetrics metrics = new DisplayMetrics();
         context.getWindowManager().getDefaultDisplay().getMetrics(metrics);
@@ -54,6 +68,11 @@ public class TimerView extends SurfaceView implements SurfaceHolder.Callback {
     protected void onDraw(Canvas canvas) {
 //        canvas.drawColor(Color.BLACK);
         canvas.drawBitmap(_timerPage.getImage(), _imageRect, _canvasRect, null);
+     
+        for (PositionedTimer timer : _timerPage.getTimers()) {
+            canvas.drawText(""+timer.getTime(), timer.getxLoc(), 
+                               timer.getyLoc(), _textPaint);
+        }
     }
 
     @Override
@@ -73,8 +92,8 @@ public class TimerView extends SurfaceView implements SurfaceHolder.Callback {
         _thread.setRunning(false);
         while (retry) {
             try {
-                // TODO this could cause deadlock if something in the thread
-                // is messed up.  better to have a timeout eventually.
+                // TODO this could probably cause deadlock if something in the 
+                // thread is messed up.  better to have a timeout eventually.
                 _thread.join();
                 retry = false;
             } catch (InterruptedException e) {

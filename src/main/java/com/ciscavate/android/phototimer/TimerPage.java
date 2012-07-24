@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.graphics.Bitmap;
+import android.util.Log;
 
 public class TimerPage {
     private final Bitmap _image;
@@ -25,6 +26,7 @@ public class TimerPage {
     }
     
     public void addTimer(PositionedTimer timer) {
+        Log.d("TimerPage", "Added: "+timer);
         _timers.add(timer);
     }
     

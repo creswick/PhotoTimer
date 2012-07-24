@@ -79,6 +79,7 @@ public class AppState {
     }
 
     public synchronized void addTimer(float x, float y, int hours, int minutes) {
+        Log.d("AppState", "adding Timer loc: ("+x+","+y+"), time = " + (hours * 60 + minutes));
         if (null == _currentPage) {
             Log.e("AppState", "We let the user add a timer to a bumper page");
         }

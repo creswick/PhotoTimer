@@ -28,7 +28,10 @@ public class PositionedTimer {
             _id = ++_id_counter;
         }
     }
-
+    public String toString () {
+        return "[PosTimer: time="+_time+" loc: ("+_xLoc+","+_yLoc+")]";
+    }
+    
     public float getxLoc() {
         return _xLoc;
     }

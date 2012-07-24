@@ -32,9 +32,13 @@ public class PhotoTimer extends Activity {
     private Toast _addTimerToast;
 
     private AppState _appState;
-
+    
+    // XXX this makes me oh, so, so sad :(
+    private float _last_x = 0;
+    private float _last_y = 0;
+    
+    
     private PagerAdapter _pagerAdapter;
-
  
     
     /**
@@ -115,33 +119,36 @@ public class PhotoTimer extends Activity {
     
     @Override
     protected Dialog onCreateDialog(int id, final Bundle b) {
-        final Resources res = getResources();
         switch (id) {
         case R.integer.dialog_time_picker:
-            OnTimeSetListener timeListener = new OnTimeSetListener() {
+            OnTimeSetListener listener = new OnTimeSetListener() {
+
                 @Override
                 public void onTimeSet(TimePicker view, int hours, int minutes) {
-                    float x = b.getFloat(res.getString(R.string.coord_x));
-                    float y = b.getFloat(res.getString(R.string.coord_y));
-                    
-                    _appState.addTimer(x, y, hours, minutes);
-                    
-                    // now remove the listener that created the dialog...
-                    View imageView = findViewById(R.id.imgView);
-                    imageView.setOnTouchListener(new View.OnTouchListener() {
-                        @Override
-                        public boolean onTouch(View v, MotionEvent event) {
-                            return false;
-                        }
-                    });
+                    _appState.addTimer(_last_x, _last_y, hours, minutes);
                 }
             };
-            
-            TimePickerDialog d = new TimePickerDialog(this, timeListener, 0, 10, true);
+            TimePickerDialog d = new TimePickerDialog(this, listener, 0, 10, true);
             return d;
         }
         return super.onCreateDialog(id);
     }
+
+//    @Override
+//    protected void onPrepareDialog(int id, Dialog dialog, Bundle args) {
+//        switch (id) {
+//        case R.integer.dialog_time_picker:
+//            // here, I could set the x,y coords properly, reading from the bundle.
+//            // but the silly TimePickerDialog doesn't provide access to it's f-ing listener.
+//            // I also can't create an f-ing dialog without passing a listener to the constructor
+//            // so I'm screwed.
+//            //
+//            //  Happy days when I take the time to sit down and replace that POS,
+//            //  or switch to DialogFragments and see if that's any better.
+//            break;
+//        }
+//        super.onPrepareDialog(id, dialog, args);
+//    }
 
     private void onOptMenuAddTimer() {
         _addTimerToast.show();
@@ -167,6 +174,9 @@ public class PhotoTimer extends Activity {
                 b.putFloat(res.getString(R.string.coord_y), y);
                 
                 showDialog(R.integer.dialog_time_picker,b);
+                
+                _last_x = x;
+                _last_y = y;
                 return false;
             }
         });
