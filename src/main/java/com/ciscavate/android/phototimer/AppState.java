@@ -19,6 +19,8 @@ public class AppState {
     private int _currentPageIdx = -1;
     
     private volatile IPagesChangedListener _pagesChangedListener;
+
+    private volatile IOnTimersChangedListener _timersChangedListener;
     
     public synchronized boolean isShowingTimerPage() {
         return null != _currentPage;
@@ -32,12 +34,14 @@ public class AppState {
     
     public synchronized boolean addPage(TimerPage page) {
         boolean res = _pages.add(page);
+        page.setOnTimersChangedListener(_timersChangedListener);
         pagesChanged();
         return res;
     }
     
     public synchronized boolean removePage(TimerPage page) {
         boolean res = _pages.remove(page);
+        page.clearOnTimersChangedListener();
         pagesChanged();
         return res;
     }
@@ -62,7 +66,11 @@ public class AppState {
     public synchronized void onPagesChanged(IPagesChangedListener pageChangedListener) {
         _pagesChangedListener = pageChangedListener;
     }
-
+    
+    public void onTimersChanged(IOnTimersChangedListener onTimersChangedListener) {
+        _timersChangedListener = onTimersChangedListener;
+    }
+    
     /**
      * 0-indexed
      * 
@@ -86,4 +94,6 @@ public class AppState {
 
         _currentPage.addTimer(new PositionedTimer(x, y, hours * 60 + minutes));
     }
+
+
 }

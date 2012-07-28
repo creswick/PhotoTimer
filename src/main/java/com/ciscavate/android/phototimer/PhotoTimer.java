@@ -21,7 +21,6 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.TimePicker;
 import android.widget.Toast;
 
@@ -63,6 +62,20 @@ public class PhotoTimer extends Activity {
             @Override
             public void pagesChanged() {
                 _pagerAdapter.notifyDataSetChanged();
+            }
+        });
+        
+        _appState.onTimersChanged(new IOnTimersChangedListener() {
+            @Override
+            public void timerAdded(PositionedTimer t) {
+                Intent intent = new Intent(PhotoTimer.this, TimerService.class);
+                intent.putExtra(getString(R.string.timerDuration), t.getTime());
+                startService(intent);
+            }
+
+            @Override
+            public void timerRemoved(PositionedTimer t) {
+                // TODO Auto-generated method stub
             }
         });
         
