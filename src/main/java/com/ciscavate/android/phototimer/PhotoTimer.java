@@ -49,6 +49,7 @@ public class PhotoTimer extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
         Log.i(TAG, "onCreate");
         _addTimerToast =
                 Toast.makeText(this, R.string.add_timer_toast_txt, 
