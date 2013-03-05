@@ -7,28 +7,8 @@
 			<attribute name="optional" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="/home/creswick/myapps/android-sdks/platforms/android-10/android.jar">
-		<attributes>
-			<attribute name="javadoc_location" value="file:/home/creswick/myapps/android-sdks/docs/reference"/>
-		</attributes>
-		<accessrules>
-			<accessrule kind="nonaccessible" pattern="com/android/internal/**"/>
-		</accessrules>
-	</classpathentry>
-	<classpathentry kind="src" output="bin/classes" path="src/main/java">
-		<attributes>
-			<attribute name="maven.pomderived" value="true"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="src" output="bin/classes" path="src/test/java">
-		<attributes>
-			<attribute name="maven.pomderived" value="true"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry exported="true" kind="con" path="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER">
-		<attributes>
-			<attribute name="maven.pomderived" value="true"/>
-		</attributes>
-	</classpathentry>
+	<classpathentry kind="src" output="bin/classes" path="src/main/java"/>
+	<classpathentry exported="true" kind="con" path="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER"/>
+	<classpathentry kind="lib" path="/Users/rogancreswick/myapps/adt-bundle-mac-x86_64/sdk/platforms/android-17/android.jar"/>
 	<classpathentry kind="output" path="bin/classes"/>
 </classpath>
