@@ -1,13 +1,14 @@
 package com.ciscavate.android.phototimer;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import android.util.Log;
 
+import com.google.common.collect.Lists;
+
 public class AppState {
 
-    private final List<TimerPage> _pages = new ArrayList<TimerPage>();
+    private final List<TimerPage> _pages = Lists.newArrayList();
     
     /**
      * The current timer page.
@@ -94,6 +95,4 @@ public class AppState {
 
         _currentPage.addTimer(new PositionedTimer(x, y, hours * 60 + minutes));
     }
-
-
 }
