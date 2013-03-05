@@ -9,8 +9,7 @@
     <name>PhotoTimer</name>
 
     <properties>
-        <platform.version> 2.3.3
-            </platform.version>
+        <platform.version>4.2</platform.version>
     </properties>
 
     <dependencies>
@@ -20,6 +19,20 @@
             <version>${platform.version}</version>
             <scope>provided</scope>
         </dependency>
+        
+        
+      <dependency>
+         <groupId>com.google.guava</groupId>
+         <artifactId>guava</artifactId>
+         <version>14.0</version>
+      </dependency>
+        
+      <dependency>
+         <groupId>junit</groupId>
+         <artifactId>junit</artifactId>
+         <version>4.11</version>
+         <scope>test</scope>
+      </dependency>
     </dependencies>
 
     <build>
@@ -34,9 +47,9 @@
                     <resourceDirectory>${project.basedir}/res</resourceDirectory>
                     <nativeLibrariesDirectory>${project.basedir}/src/main/native</nativeLibrariesDirectory>
                     <sdk>
-                        <platform>10</platform>
+                        <platform>17</platform>
                     </sdk>
-                                        <undeployBeforeDeploy>true</undeployBeforeDeploy>
+                    <undeployBeforeDeploy>true</undeployBeforeDeploy>
                 </configuration>
                 <extensions>true</extensions>
             </plugin>
