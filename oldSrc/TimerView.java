@@ -1,4 +1,4 @@
-package com.ciscavate.android.phototimer;
+package com.ciscavate.android.phototimer.old;
 
 import android.app.Activity;
 import android.graphics.Canvas;

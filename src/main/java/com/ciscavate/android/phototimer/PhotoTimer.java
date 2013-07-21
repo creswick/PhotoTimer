@@ -1,44 +1,65 @@
 package com.ciscavate.android.phototimer;
 
+import java.util.List;
+
+import android.R.drawable;
 import android.app.Activity;
 import android.app.Dialog;
 import android.app.TimePickerDialog;
 import android.app.TimePickerDialog.OnTimeSetListener;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
-import android.content.res.Resources;
-import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.net.Uri;
+import android.content.ServiceConnection;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.provider.MediaStore;
-import android.support.v4.view.PagerAdapter;
-import android.support.v4.view.ViewPager;
-import android.support.v4.view.ViewPager.OnPageChangeListener;
+import android.os.IBinder;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.MotionEvent;
 import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.ImageButton;
+import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.TimePicker;
-import android.widget.Toast;
 
-public class PhotoTimer extends Activity {
+import com.ciscavate.android.phototimer.service.Timer;
+import com.ciscavate.android.phototimer.service.TimerService;
+import com.ciscavate.android.phototimer.service.TimerService.LocalBinder;
+import com.google.common.collect.Lists;
 
-    private static String TAG = "PhotoTimer";
-    
-    private Toast _addTimerToast;
+public final class PhotoTimer extends Activity {
+    public static final String TAG = "PhotoTimer";
 
-    private AppState _appState;
+    private TimerService mService;
+    private boolean mBound = false;
     
-    // XXX this makes me oh, so, so sad :(
-    private float _last_x = 0;
-    private float _last_y = 0;
-    
-    
-    private PagerAdapter _pagerAdapter;
- 
+    /** Defines callbacks for service binding, passed to bindService() */
+    private ServiceConnection mConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName className,
+                IBinder service) {
+            Log.i(TAG, "Binding to service...");
+            // We've bound to LocalService, cast the IBinder and get LocalService instance
+            LocalBinder binder = (LocalBinder) service;
+            mService = binder.getService();
+            mBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            mBound = false;
+        }
+    };
+
+    private ArrayAdapter<Timer> _timerListAdapter;
+
+    private final List<Timer> _timers = Lists.newArrayList();
     
     /**
      * Called when the activity is first created.
@@ -49,54 +70,61 @@ public class PhotoTimer extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
         Log.i(TAG, "onCreate");
-        _addTimerToast =
-                Toast.makeText(this, R.string.add_timer_toast_txt, 
-                        Toast.LENGTH_SHORT);
-        
         setContentView(R.layout.main);
         
-        _appState = new AppState();
-        _pagerAdapter = new CiscavatePagerAdapter(this, _appState);
-        _appState.onPagesChanged(new IPagesChangedListener() {
-            @Override
-            public void pagesChanged() {
-                _pagerAdapter.notifyDataSetChanged();
-            }
-        });
-        
-        _appState.onTimersChanged(new IOnTimersChangedListener() {
-            @Override
-            public void timerAdded(PositionedTimer t) {
-                Intent intent = new Intent(PhotoTimer.this, TimerService.class);
-                intent.putExtra(getString(R.string.timerDuration), t.getTime());
-                startService(intent);
-            }
+        _timerListAdapter = new ArrayAdapter<Timer>(this, 
+                        R.layout.row_layout, _timers) {
 
-            @Override
-            public void timerRemoved(PositionedTimer t) {
-                // TODO Auto-generated method stub
-            }
-        });
+          @Override
+          public View getView(int position, View convertView,
+                              ViewGroup parent) {
+              final Timer timer = _timers.get(position);
+              // TODO refactor, per:
+              //return new TimerRowView(timer, mService, this);
+              
+              LayoutInflater inflater = (LayoutInflater) PhotoTimer.this
+                      .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+              View rowView = inflater.inflate(R.layout.row_layout, parent, false);
+              
+              TextView text = (TextView)rowView.findViewById(R.id.timerRowText);
+              ImageButton delBtn = (ImageButton)rowView.findViewById(R.id.timerRowDelete);
+              delBtn.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    mService.removeTimer(timer);
+                    updateTimerList();
+                }
+              });
+              
+              ImageButton playPauseBtn = (ImageButton)rowView.findViewById(R.id.timerRowButton);
+
+
+              text.setText(timer.getName() + " " + timer.getPrettyDuration());
+              
+              Drawable btnDrawable;
+              if (timer.isRunning()) {
+                 btnDrawable = getResources().getDrawable(drawable.ic_media_pause);
+              } else {
+                 btnDrawable = getResources().getDrawable(drawable.ic_media_play);
+              }
+              playPauseBtn.setImageDrawable(btnDrawable);
+              
+              playPauseBtn.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    toggleTimerRunning(timer);
+                }
+              });
+              
+              return rowView;
+          }
+        };
         
-        ViewPager pager = (ViewPager) findViewById(R.id.timerPager);
-        pager.setAdapter(_pagerAdapter);
-        pager.setOnPageChangeListener(new OnPageChangeListener() {
-            @Override
-            public void onPageSelected(int idx) {
-                Log.w(TAG, "onPageSelected fired.  idx="+idx);
-                _appState.setSelectedPage(idx);
-                // Android 3+: PhotoTimer.this.invalidateOptionsMenu();
-            }
-            
-            @Override
-            public void onPageScrolled(int arg0, float arg1, int arg2) {}
-            
-            @Override
-            public void onPageScrollStateChanged(int idx) {}
-        });
+        ListView listView = (ListView) findViewById(R.id.timerList);
+        listView.setAdapter(_timerListAdapter);
     }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -108,8 +136,6 @@ public class PhotoTimer extends Activity {
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         Log.w(TAG, "onPrepareOptionsMenu");
-        MenuItem addItem = menu.findItem(R.id.opt_menu_add_timer);
-        addItem.setEnabled(_appState.isShowingTimerPage());
         return super.onPrepareOptionsMenu(menu);
     }
     
@@ -118,10 +144,10 @@ public class PhotoTimer extends Activity {
         // Handle item selection
         switch (item.getItemId()) {
             case R.id.opt_menu_new_timer_camera:
-                getPhoto();
+                //getPhoto();
                 return true;
             case R.id.opt_menu_new_timer_gallery:
-                getImage();
+                //getImage();
                 return true;
             case R.id.opt_menu_add_timer:
                 onOptMenuAddTimer();
@@ -131,15 +157,20 @@ public class PhotoTimer extends Activity {
         }
     }
     
+    private void onOptMenuAddTimer() {
+        showDialog(R.integer.dialog_time_picker);
+    }
+
     @Override
     protected Dialog onCreateDialog(int id, final Bundle b) {
         switch (id) {
         case R.integer.dialog_time_picker:
             OnTimeSetListener listener = new OnTimeSetListener() {
-
                 @Override
                 public void onTimeSet(TimePicker view, int hours, int minutes) {
-                    _appState.addTimer(_last_x, _last_y, hours, minutes);
+                    int duration = hours * 60 * 60 + minutes * 60;
+                    mService.newTimer("new timer", duration);
+                    updateTimerList();
                 }
             };
             TimePickerDialog d = new TimePickerDialog(this, listener, 0, 10, true);
@@ -147,106 +178,57 @@ public class PhotoTimer extends Activity {
         }
         return super.onCreateDialog(id);
     }
-
-//    @Override
-//    protected void onPrepareDialog(int id, Dialog dialog, Bundle args) {
-//        switch (id) {
-//        case R.integer.dialog_time_picker:
-//            // here, I could set the x,y coords properly, reading from the bundle.
-//            // but the silly TimePickerDialog doesn't provide access to it's f-ing listener.
-//            // I also can't create an f-ing dialog without passing a listener to the constructor
-//            // so I'm screwed.
-//            //
-//            //  Happy days when I take the time to sit down and replace that POS,
-//            //  or switch to DialogFragments and see if that's any better.
-//            break;
-//        }
-//        super.onPrepareDialog(id, dialog, args);
-//    }
-
-    private void onOptMenuAddTimer() {
-        _addTimerToast.show();
-        
-        //ViewPager pager = (ViewPager)findViewById(R.id.timerPager);
-        View imageView = findViewById(R.id.imgView);
-        
-        if (null == imageView) {
-            Log.e(TAG, "not looking at an image");
-            return;
-        }
-        
-        imageView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                float x = event.getX();
-                float y = event.getY();
-                Resources res = getResources();
-                
-                Log.d(TAG, "Touch event at: ("+x+","+y+")");
-                Bundle b = new Bundle();
-                b.putFloat(res.getString(R.string.coord_x), x);
-                b.putFloat(res.getString(R.string.coord_y), y);
-                
-                showDialog(R.integer.dialog_time_picker,b);
-                
-                _last_x = x;
-                _last_y = y;
-                return false;
-            }
-        });
-    }
     
-    public void getImage() {
-        Intent i = new Intent(Intent.ACTION_PICK,
-                android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        startActivityForResult(i, R.integer.image_selected);
-    }
-    
-    
-    public void getPhoto() {
-        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        startActivityForResult(intent, R.integer.take_picture);
+    @Override
+    protected void onStart() {
+        super.onStart();
+        bindToService();
     }
 
-    protected void onActivityResult(int requestCode, int resultCode,
-            Intent itent) {
-        super.onActivityResult(requestCode, resultCode, itent);
+    @Override
+    protected void onStop() {
+        super.onStop();
+        unbindFromService();
+    }
 
-        Bitmap imageBmp = null;
+    private void bindToService() {
+        // Bind to TimerService
+        Intent intent = new Intent(this, TimerService.class);
+        boolean isBound = bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
 
-        switch (requestCode) {
-        case R.integer.image_selected:
-            if (resultCode != RESULT_OK) {
-                return;
-            }
-            Uri selectedImageUri = itent.getData();
-            String[] filePathColumn = { MediaStore.Images.Media.DATA };
-
-            Cursor cursor =
-                    getContentResolver().query(selectedImageUri,
-                            filePathColumn, null, null, null);
-            cursor.moveToFirst();
-
-            int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
-            String filePath = cursor.getString(columnIndex);
-            cursor.close();
-
-            imageBmp = BitmapFactory.decodeFile(filePath);
-
-            break;
-        case R.integer.take_picture:
-            if (resultCode != RESULT_OK) {
-                return;
-            }
-            imageBmp = (Bitmap)itent.getExtras().get("data");
-            break;
+        if (!isBound) {
+            Log.e(TAG, "Could not bind service");
+        } else {
+            updateTimerList();
         }
-        
-        if (null == imageBmp) {
-            Log.e(TAG, "Error loading image from camera or gallery");
+    }
+    
+    private void unbindFromService() {
+        // Unbind from the service
+        if (mBound) {
+            unbindService(mConnection);
+            mBound = false;
         }
-        // add new timer page
-        _appState.addPage(new TimerPage(imageBmp));
+    }
+
+    private void toggleTimerRunning(Timer timer) {
+        if (null != mService) {
+            mService.toggleTimer(timer.getId());
+            updateTimerList();
+        }else {
+            Log.d(TAG, "service is not bound");
+        }
+    }
+
+    private void updateTimerList() {
+        if (null != mService) {
+            Log.d(TAG, "Updating timers");
+            _timers.clear();
+            _timers.addAll(mService.getTimers());
+            _timerListAdapter.notifyDataSetChanged();
+        } else {
+            Log.d(TAG, "sevrice is not bound");
+        }
     }
 }
 

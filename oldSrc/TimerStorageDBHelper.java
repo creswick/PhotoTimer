@@ -1,4 +1,4 @@
-package com.ciscavate.android.phototimer;
+package com.ciscavate.android.phototimer.old;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;

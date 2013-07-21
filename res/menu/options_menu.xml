@@ -6,5 +6,8 @@
     <item android:id="@+id/opt_menu_new_timer_gallery"
           android:icon="@android:drawable/ic_menu_gallery"
           android:title="@string/ImageMenuString" />
-    <item android:id="@+id/opt_menu_add_timer" android:title="@string/add_timer" android:icon="@android:drawable/ic_menu_add" android:enabled="false"></item>
+    <item android:id="@+id/opt_menu_add_timer"
+          android:title="@string/add_timer" 
+          android:icon="@android:drawable/ic_menu_add" 
+          android:enabled="true"></item>
 </menu>
