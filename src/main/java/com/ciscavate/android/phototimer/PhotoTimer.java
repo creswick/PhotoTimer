@@ -7,9 +7,11 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.app.TimePickerDialog;
 import android.app.TimePickerDialog.OnTimeSetListener;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -61,6 +63,36 @@ public final class PhotoTimer extends Activity {
 
     private final List<Timer> _timers = Lists.newArrayList();
     
+
+    protected void registerBroadcastReceiver() {
+        IntentFilter ifilter = new IntentFilter();
+        
+        for(TimerAction action : TimerAction.values()) {
+            ifilter.addAction(action.toString());
+        }
+        registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                Log.i(TAG, "received broadcast intent: "+intent);
+                switch (TimerAction.valueOf(intent.getAction())){
+                case TIMER_ADDED:
+                case TIMER_REMOVED:
+                case TIMER_STOPPED:
+                case TIMER_ALARM_STOPPED:
+                case TIMER_STARTED:
+                case TIMER_TICK:
+                case ALARM_SOUNDING:
+                    updateTimerList();
+                    break;
+                default:
+                    Log.e(TAG, "unknown broadcast intent action: "+ intent.getAction());
+                }
+                
+            }
+        }, new IntentFilter(ifilter));
+    }
+
+    
     /**
      * Called when the activity is first created.
      * @param savedInstanceState If the activity is being re-initialized after 
@@ -93,14 +125,11 @@ public final class PhotoTimer extends Activity {
                 @Override
                 public void onClick(View v) {
                     mService.removeTimer(timer);
-                    updateTimerList();
                 }
               });
               
               ImageButton playPauseBtn = (ImageButton)rowView.findViewById(R.id.timerRowButton);
-
-
-              text.setText(timer.getName() + " " + timer.getPrettyDuration());
+              text.setText(timer.getName() + " " + timer.getPrettyRemaining());
               
               Drawable btnDrawable;
               if (timer.isRunning()) {
@@ -125,6 +154,11 @@ public final class PhotoTimer extends Activity {
         listView.setAdapter(_timerListAdapter);
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        registerBroadcastReceiver();
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -170,7 +204,6 @@ public final class PhotoTimer extends Activity {
                 public void onTimeSet(TimePicker view, int hours, int minutes) {
                     int duration = hours * 60 * 60 + minutes * 60;
                     mService.newTimer("new timer", duration);
-                    updateTimerList();
                 }
             };
             TimePickerDialog d = new TimePickerDialog(this, listener, 0, 10, true);
@@ -214,7 +247,6 @@ public final class PhotoTimer extends Activity {
     private void toggleTimerRunning(Timer timer) {
         if (null != mService) {
             mService.toggleTimer(timer.getId());
-            updateTimerList();
         }else {
             Log.d(TAG, "service is not bound");
         }

@@ -1,5 +1,7 @@
 package com.ciscavate.android.phototimer.service;
 
+import java.util.Locale;
+
 public final class Timer {
     private static int id_counter = 0;
     
@@ -9,13 +11,15 @@ public final class Timer {
     }
 
     private final String _name;
-    private final int _duration;
+    private final long _duration;
     private final int _id;
     private boolean _running = false;
+    private long _remaining;
     
     private Timer(String name, int duration, int id) {
         this._name = name;
         this._duration = duration;
+        this._remaining = duration;
         this._id = id;
     }
 
@@ -23,10 +27,18 @@ public final class Timer {
         return _name;
     }
 
-    public int getDuration() {
+    public long getDuration() {
         return _duration;
     }
 
+    public long getRemaining() {
+        return _remaining;
+    }
+
+    void setRemaining(long remaining) {
+        _remaining = remaining;        
+    }
+    
     public int getId() {
         return _id;
     }
@@ -36,6 +48,7 @@ public final class Timer {
     }
 
     void toggleRunning() {
+        _remaining = _duration;
         _running = !isRunning();
     }
     
@@ -68,13 +81,21 @@ public final class Timer {
     }
 
     public String getPrettyDuration() {
-        int total = getDuration();
-
-        int secondsInHour = 60 * 60;
-        int hours = (int) Math.floor(total / secondsInHour);
-        int min = (total % secondsInHour) / 60;
-        int seconds = (total % 60);
-        
-        return String.format("%02d:%02d:%02d", hours, min, seconds);
+        return prettyTime(getDuration());
     }
+
+    public String getPrettyRemaining() {
+        return prettyTime(getRemaining());
+    }
+    
+    private String prettyTime(long total) {
+        long secondsInHour = 60 * 60;
+        long hours = total / secondsInHour;
+        long min = (total % secondsInHour) / 60;
+        long seconds = (total % 60);
+        
+        return String.format(Locale.US,
+                "%02d:%02d:%02d", hours, min, seconds);
+    }
+
 }
