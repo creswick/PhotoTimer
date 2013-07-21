@@ -62,6 +62,8 @@ public final class PhotoTimer extends Activity {
     private ArrayAdapter<Timer> _timerListAdapter;
 
     private final List<Timer> _timers = Lists.newArrayList();
+
+    private BroadcastReceiver broadcastReceiver;
     
 
     protected void registerBroadcastReceiver() {
@@ -70,7 +72,8 @@ public final class PhotoTimer extends Activity {
         for(TimerAction action : TimerAction.values()) {
             ifilter.addAction(action.toString());
         }
-        registerReceiver(new BroadcastReceiver() {
+        
+        broadcastReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 Log.i(TAG, "received broadcast intent: "+intent);
@@ -89,9 +92,9 @@ public final class PhotoTimer extends Activity {
                 }
                 
             }
-        }, new IntentFilter(ifilter));
+        };
+        registerReceiver(broadcastReceiver, new IntentFilter(ifilter));
     }
-
     
     /**
      * Called when the activity is first created.
@@ -102,7 +105,7 @@ public final class PhotoTimer extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.i(TAG, "onCreate");
+        Log.i(TAG, "onCreate(...)");
         setContentView(R.layout.main);
         
         _timerListAdapter = new ArrayAdapter<Timer>(this, 
@@ -155,9 +158,38 @@ public final class PhotoTimer extends Activity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        Log.i(TAG, "onStart()");
+        bindToService();
+    }
+
+    
+    @Override
     public void onResume() {
         super.onResume();
+        Log.i(TAG, "onResume()");
         registerBroadcastReceiver();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        Log.i(TAG, "onPause()");
+        unregisterReceiver(broadcastReceiver);
+    }
+    
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.i(TAG, "onStop()");
+        unbindFromService();
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.i(TAG, "onDestroy()");
     }
 
     @Override
@@ -210,18 +242,6 @@ public final class PhotoTimer extends Activity {
             return d;
         }
         return super.onCreateDialog(id);
-    }
-    
-    @Override
-    protected void onStart() {
-        super.onStart();
-        bindToService();
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        unbindFromService();
     }
 
     private void bindToService() {

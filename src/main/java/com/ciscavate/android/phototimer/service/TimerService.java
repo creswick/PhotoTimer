@@ -47,6 +47,7 @@ public final class TimerService extends Service {
         Timer t = Timer.newTimer(name, duration);
         Log.i(PhotoTimer.TAG, "created timer: "+t);
         _timers.add(t);
+        Log.i(PhotoTimer.TAG, _timers.size() + " timers in service.");
         sendTimerBroadcast(TimerAction.TIMER_ADDED);
     }
     
