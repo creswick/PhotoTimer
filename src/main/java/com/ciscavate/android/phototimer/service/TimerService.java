@@ -35,6 +35,11 @@ public final class TimerService extends Service {
     }
 
     @Override
+    public int onStartCommand(Intent intent, int flags, int startid) {
+        return Service.START_STICKY;
+    }
+    
+    @Override
     public IBinder onBind(Intent intent) {
         return _binder;
     }
@@ -43,7 +48,7 @@ public final class TimerService extends Service {
         return _timers;
     }
     
-    public void newTimer(String name, int duration) {
+    public void newTimer(String name, long duration) {
         Timer t = Timer.newTimer(name, duration);
         Log.i(PhotoTimer.TAG, "created timer: "+t);
         _timers.add(t);

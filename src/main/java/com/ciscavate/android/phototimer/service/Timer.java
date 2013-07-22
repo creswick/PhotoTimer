@@ -5,7 +5,7 @@ import java.util.Locale;
 public final class Timer {
     private static int id_counter = 0;
     
-    public static synchronized Timer newTimer(String name, int duration) {
+    public static synchronized Timer newTimer(String name, long duration) {
         int id = id_counter ++;
         return new Timer(name, duration, id);
     }
@@ -16,7 +16,7 @@ public final class Timer {
     private boolean _running = false;
     private long _remaining;
     
-    private Timer(String name, int duration, int id) {
+    private Timer(String name, long duration, int id) {
         this._name = name;
         this._duration = duration;
         this._remaining = duration;

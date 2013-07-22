@@ -4,9 +4,8 @@ import java.util.List;
 
 import android.R.drawable;
 import android.app.Activity;
-import android.app.Dialog;
-import android.app.TimePickerDialog;
-import android.app.TimePickerDialog.OnTimeSetListener;
+import android.app.Fragment;
+import android.app.FragmentTransaction;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -28,14 +27,14 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.TimePicker;
 
+import com.ciscavate.android.phototimer.TimePickerDialogFragment.ITimePickerHandler;
 import com.ciscavate.android.phototimer.service.Timer;
 import com.ciscavate.android.phototimer.service.TimerService;
 import com.ciscavate.android.phototimer.service.TimerService.LocalBinder;
 import com.google.common.collect.Lists;
 
-public final class PhotoTimer extends Activity {
+public final class PhotoTimer extends Activity implements ITimePickerHandler {
     public static final String TAG = "PhotoTimer";
 
     private TimerService mService;
@@ -169,6 +168,11 @@ public final class PhotoTimer extends Activity {
     public void onResume() {
         super.onResume();
         Log.i(TAG, "onResume()");
+
+        // Start the timer service so it is not auto-collected when unbound.
+        Intent startService = new Intent(this, TimerService.class);
+        startService(startService);
+
         registerBroadcastReceiver();
     }
 
@@ -224,24 +228,29 @@ public final class PhotoTimer extends Activity {
     }
     
     private void onOptMenuAddTimer() {
-        showDialog(R.integer.dialog_time_picker);
+        // DialogFragment.show() will take care of adding the fragment
+        // in a transaction. We also want to remove any currently showing
+        // dialog, so make our own transaction and take care of that here.
+        FragmentTransaction ft = getFragmentManager().beginTransaction();
+        Fragment prev = getFragmentManager().findFragmentByTag("dialog");
+        if (prev != null) {
+            ft.remove(prev);
+        }
+        ft.addToBackStack(null);
+
+        // Create and show the dialog.
+        TimePickerDialogFragment newFragment = new TimePickerDialogFragment();
+        newFragment.setTimePickerHandler(this);
+        newFragment.show(ft, "dialog");
     }
 
     @Override
-    protected Dialog onCreateDialog(int id, final Bundle b) {
-        switch (id) {
-        case R.integer.dialog_time_picker:
-            OnTimeSetListener listener = new OnTimeSetListener() {
-                @Override
-                public void onTimeSet(TimePicker view, int hours, int minutes) {
-                    int duration = hours * 60 * 60 + minutes * 60;
-                    mService.newTimer("new timer", duration);
-                }
-            };
-            TimePickerDialog d = new TimePickerDialog(this, listener, 0, 10, true);
-            return d;
-        }
-        return super.onCreateDialog(id);
+    public void onTimeSetHandler(String name, int hour, int min, int sec) {
+        long duration = hour * (60 * 60);
+        duration += (min * 60);
+        duration += sec;
+        
+        mService.newTimer(name, duration);
     }
 
     private void bindToService() {
@@ -282,5 +291,6 @@ public final class PhotoTimer extends Activity {
             Log.d(TAG, "sevrice is not bound");
         }
     }
+
 }
 
