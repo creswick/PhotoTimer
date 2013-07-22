@@ -5,6 +5,9 @@ import java.util.Map;
 
 import android.app.Service;
 import android.content.Intent;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.CountDownTimer;
 import android.os.IBinder;
@@ -22,6 +25,7 @@ public final class TimerService extends Service {
     private List<Timer> _timers = Lists.newArrayList();
 
     private Map<Timer, CountDownTimer> _countdowns = Maps.newHashMap();
+    private Map<Timer, Ringtone> _alarms = Maps.newHashMap();
     
     /**
      * Class used for the client Binder.  Because we know this service always
@@ -64,6 +68,20 @@ public final class TimerService extends Service {
         sendTimerBroadcast(TimerAction.TIMER_REMOVED);
     }
 
+    private void alarmTimer(Timer t) {
+        t.setAlarmOn(true);
+    }
+    
+    public void stopAlarm(Timer t) {
+        _alarms.get(t).stop();
+        // TODO we could re-use the stored Ringtones:
+        _alarms.remove(t);
+        
+        Timer timer = findTimer(t.getId());
+        timer.setAlarmOn(false);
+        sendTimerBroadcast(TimerAction.TIMER_ALARM_STOPPED);
+    }
+    
     private void stopTimer(Timer t) {
         if (t.isRunning()) {
             toggleTimer(t.getId());
@@ -87,7 +105,9 @@ public final class TimerService extends Service {
                 @Override
                 public void onFinish() {
                     Log.i(PhotoTimer.TAG, "BEEP BEEP BEEP");
-                    // TODO fire alarm.
+                    
+                    playAlarm(t);
+                    
                     t.toggleRunning();                    
                     sendTimerBroadcast(TimerAction.ALARM_SOUNDING);
                 }
@@ -102,6 +122,32 @@ public final class TimerService extends Service {
             
             _countdowns.remove(t);
             sendTimerBroadcast(TimerAction.TIMER_STOPPED);
+        }
+    }
+
+    protected void playAlarm(Timer timer) {
+        Uri alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+        if(alert == null){
+            // alert is null, using backup
+            alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            if(alert == null){  // I can't see this ever being null (as always have a default notification) but just incase
+                // alert backup is null, using 2nd backup
+                alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);               
+            }
+        }
+        
+        // set the data store value:
+        alarmTimer(timer);
+        // ping the UI:
+        sendTimerBroadcast(TimerAction.ALARM_SOUNDING);
+        
+        // NOW start being obnoxious:
+        Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), alert);
+        _alarms.put(timer, r);
+
+        if (null != r) {
+            Log.e(PhotoTimer.TAG, "Ringtone is null!");
+            r.play();
         }
     }
 

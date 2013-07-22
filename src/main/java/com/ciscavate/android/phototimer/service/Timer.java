@@ -15,6 +15,7 @@ public final class Timer {
     private final int _id;
     private boolean _running = false;
     private long _remaining;
+    private boolean _alarmOn = false;
     
     private Timer(String name, long duration, int id) {
         this._name = name;
@@ -45,6 +46,10 @@ public final class Timer {
 
     public boolean isRunning() {
         return _running;
+    }
+    
+    public boolean isAlarmOn() {
+        return _alarmOn;
     }
 
     void toggleRunning() {
@@ -98,4 +103,7 @@ public final class Timer {
                 "%02d:%02d:%02d", hours, min, seconds);
     }
 
+    void setAlarmOn(boolean isOn) {
+        _alarmOn  = isOn;
+    }
 }

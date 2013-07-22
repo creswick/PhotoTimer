@@ -12,6 +12,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -119,7 +120,7 @@ public final class PhotoTimer extends Activity implements ITimePickerHandler {
               
               LayoutInflater inflater = (LayoutInflater) PhotoTimer.this
                       .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-              View rowView = inflater.inflate(R.layout.row_layout, parent, false);
+              final View rowView = inflater.inflate(R.layout.row_layout, parent, false);
               
               TextView text = (TextView)rowView.findViewById(R.id.timerRowText);
               ImageButton delBtn = (ImageButton)rowView.findViewById(R.id.timerRowDelete);
@@ -132,19 +133,30 @@ public final class PhotoTimer extends Activity implements ITimePickerHandler {
               
               ImageButton playPauseBtn = (ImageButton)rowView.findViewById(R.id.timerRowButton);
               text.setText(timer.getName() + " " + timer.getPrettyRemaining());
-              
+
+              final Drawable oldColor = rowView.getBackground();
               Drawable btnDrawable;
-              if (timer.isRunning()) {
+              if (timer.isAlarmOn()) {
+                 btnDrawable = getResources().getDrawable(drawable.ic_popup_reminder);
+                 rowView.setBackgroundColor(Color.RED);
+              } else if (timer.isRunning()) {
                  btnDrawable = getResources().getDrawable(drawable.ic_media_pause);
               } else {
                  btnDrawable = getResources().getDrawable(drawable.ic_media_play);
               }
+              
+              
               playPauseBtn.setImageDrawable(btnDrawable);
               
               playPauseBtn.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    toggleTimerRunning(timer);
+                    if (timer.isAlarmOn()) {
+                        mService.stopAlarm(timer);
+                        rowView.setBackgroundDrawable(oldColor);
+                    } else {
+                        toggleTimerRunning(timer);
+                    }
                 }
               });
               
