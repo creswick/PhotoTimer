@@ -1,16 +1,20 @@
 package com.ciscavate.android.phototimer.service;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
-import android.media.Ringtone;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.CountDownTimer;
 import android.os.IBinder;
+import android.os.Vibrator;
 import android.util.Log;
 
 import com.ciscavate.android.phototimer.PhotoTimer;
@@ -25,7 +29,17 @@ public final class TimerService extends Service {
     private List<Timer> _timers = Lists.newArrayList();
 
     private Map<Timer, CountDownTimer> _countdowns = Maps.newHashMap();
-    private Map<Timer, Ringtone> _alarms = Maps.newHashMap();
+
+    private MediaPlayer _player;
+
+    private Vibrator _vibrator;
+
+    private final long[] _vibratorPattern = new long[] { 0l, 200l, 500l };
+    
+    @Override
+    public void onCreate(){
+        _vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+    }
     
     /**
      * Class used for the client Binder.  Because we know this service always
@@ -73,9 +87,8 @@ public final class TimerService extends Service {
     }
     
     public void stopAlarm(Timer t) {
-        _alarms.get(t).stop();
-        // TODO we could re-use the stored Ringtones:
-        _alarms.remove(t);
+        _player.stop();
+        _vibrator.cancel();
         
         Timer timer = findTimer(t.getId());
         timer.setAlarmOn(false);
@@ -126,10 +139,11 @@ public final class TimerService extends Service {
     }
 
     protected void playAlarm(Timer timer) {
-        Uri alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+        Uri alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
         if(alert == null){
             // alert is null, using backup
-            alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+
             if(alert == null){  // I can't see this ever being null (as always have a default notification) but just incase
                 // alert backup is null, using 2nd backup
                 alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);               
@@ -142,13 +156,39 @@ public final class TimerService extends Service {
         sendTimerBroadcast(TimerAction.ALARM_SOUNDING);
         
         // NOW start being obnoxious:
-        Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), alert);
-        _alarms.put(timer, r);
+        //Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), alert);
 
-        if (null != r) {
-            Log.e(PhotoTimer.TAG, "Ringtone is null!");
-            r.play();
+        _player = new MediaPlayer();
+        try {
+            _player.setDataSource(getApplicationContext(), alert);
+        } catch (IllegalArgumentException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (SecurityException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IllegalStateException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
+        
+        _player.setAudioStreamType(AudioManager.STREAM_ALARM);
+        // keep playing the sound for ever
+        _player.setLooping(true);
+        try {
+            _player.prepare();
+        } catch (IllegalStateException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        _player.start();
+        _vibrator.vibrate(_vibratorPattern, 0);
     }
 
     private Timer findTimer(int id) {
