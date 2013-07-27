@@ -18,7 +18,7 @@ import android.os.Vibrator;
 import android.util.Log;
 
 import com.ciscavate.android.phototimer.PhotoTimer;
-import com.ciscavate.android.phototimer.TimerAction;
+import com.ciscavate.android.phototimer.TimerActions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -71,7 +71,7 @@ public final class TimerService extends Service {
         Log.i(PhotoTimer.TAG, "created timer: "+t);
         _timers.add(t);
         Log.i(PhotoTimer.TAG, _timers.size() + " timers in service.");
-        sendTimerBroadcast(TimerAction.TIMER_ADDED);
+        sendTimerBroadcast(TimerActions.TIMER_ADDED);
     }
     
     public void removeTimer(Timer t) {
@@ -79,7 +79,7 @@ public final class TimerService extends Service {
         if (_timers.remove(t)) {
             Log.d(PhotoTimer.TAG, "Removed timer: "+t);
         }
-        sendTimerBroadcast(TimerAction.TIMER_REMOVED);
+        sendTimerBroadcast(TimerActions.TIMER_REMOVED);
     }
 
     private void alarmTimer(Timer t) {
@@ -92,7 +92,7 @@ public final class TimerService extends Service {
         
         Timer timer = findTimer(t.getId());
         timer.setAlarmOn(false);
-        sendTimerBroadcast(TimerAction.TIMER_ALARM_STOPPED);
+        sendTimerBroadcast(TimerActions.TIMER_ALARM_STOPPED);
     }
     
     private void stopTimer(Timer t) {
@@ -112,7 +112,7 @@ public final class TimerService extends Service {
                 public void onTick(long millisUntilFinished) {
                     t.setRemaining(millisUntilFinished / 1000);
                     Log.i(PhotoTimer.TAG, "Countdown, timer: "+t.getId() + " " + t.getRemaining() + " remaining");
-                    sendTimerBroadcast(TimerAction.TIMER_TICK);
+                    sendTimerBroadcast(TimerActions.TIMER_TICK);
                 }
                 
                 @Override
@@ -122,19 +122,19 @@ public final class TimerService extends Service {
                     playAlarm(t);
                     
                     t.toggleRunning();                    
-                    sendTimerBroadcast(TimerAction.ALARM_SOUNDING);
+                    sendTimerBroadcast(TimerActions.ALARM_SOUNDING);
                 }
             };
             _countdowns.put(t, cdTimer);
             cdTimer.start();
-            sendTimerBroadcast(TimerAction.TIMER_STARTED);
+            sendTimerBroadcast(TimerActions.TIMER_STARTED);
         } else {
             // disable the running alarms...
             CountDownTimer cdTimer = _countdowns.get(t);
             cdTimer.cancel();
             
             _countdowns.remove(t);
-            sendTimerBroadcast(TimerAction.TIMER_STOPPED);
+            sendTimerBroadcast(TimerActions.TIMER_STOPPED);
         }
     }
 
@@ -153,7 +153,7 @@ public final class TimerService extends Service {
         // set the data store value:
         alarmTimer(timer);
         // ping the UI:
-        sendTimerBroadcast(TimerAction.ALARM_SOUNDING);
+        sendTimerBroadcast(TimerActions.ALARM_SOUNDING);
         
         // NOW start being obnoxious:
         //Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), alert);
@@ -200,7 +200,7 @@ public final class TimerService extends Service {
         throw new IllegalStateException("Timer does not exist: "+id);
     }
 
-    private void sendTimerBroadcast(TimerAction action) {
+    private void sendTimerBroadcast(TimerActions action) {
         Intent tick = new Intent();
         tick.setAction(action.toString());
         sendBroadcast(tick);

@@ -29,7 +29,8 @@ import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
 
-import com.ciscavate.android.phototimer.TimePickerDialogFragment.ITimePickerHandler;
+import com.ciscavate.android.phototimer.dialogs.SpinnerPicker;
+import com.ciscavate.android.phototimer.dialogs.SpinnerPicker.ITimePickerHandler;
 import com.ciscavate.android.phototimer.service.Timer;
 import com.ciscavate.android.phototimer.service.TimerService;
 import com.ciscavate.android.phototimer.service.TimerService.LocalBinder;
@@ -69,7 +70,7 @@ public final class PhotoTimer extends Activity implements ITimePickerHandler {
     protected void registerBroadcastReceiver() {
         IntentFilter ifilter = new IntentFilter();
         
-        for(TimerAction action : TimerAction.values()) {
+        for(TimerActions action : TimerActions.values()) {
             ifilter.addAction(action.toString());
         }
         
@@ -77,7 +78,7 @@ public final class PhotoTimer extends Activity implements ITimePickerHandler {
             @Override
             public void onReceive(Context context, Intent intent) {
                 Log.i(TAG, "received broadcast intent: "+intent);
-                switch (TimerAction.valueOf(intent.getAction())){
+                switch (TimerActions.valueOf(intent.getAction())){
                 case TIMER_ADDED:
                 case TIMER_REMOVED:
                 case TIMER_STOPPED:
@@ -251,7 +252,7 @@ public final class PhotoTimer extends Activity implements ITimePickerHandler {
         ft.addToBackStack(null);
 
         // Create and show the dialog.
-        TimePickerDialogFragment newFragment = new TimePickerDialogFragment();
+        SpinnerPicker newFragment = new SpinnerPicker();
         newFragment.setTimePickerHandler(this);
         newFragment.show(ft, "dialog");
     }

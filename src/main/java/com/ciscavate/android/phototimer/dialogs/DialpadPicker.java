@@ -1,4 +1,4 @@
-package com.ciscavate.android.phototimer;
+package com.ciscavate.android.phototimer.dialogs;
 
 import android.app.DialogFragment;
 import android.os.Bundle;
@@ -10,19 +10,20 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.NumberPicker;
 
-public class TimePickerDialogFragment extends DialogFragment {
+import com.ciscavate.android.phototimer.R;
+
+public class DialpadPicker extends DialogFragment {
 
     public static interface ITimePickerHandler {
         void onTimeSetHandler(String name, int hour, int min, int sec);
     }
-    
 
     private ITimePickerHandler _handler;
     
     /**
      * required dumb constructor.
      */
-    public TimePickerDialogFragment() {    }
+    public DialpadPicker() {    }
     
     public void setTimePickerHandler(ITimePickerHandler handler) {
         this._handler = handler;
@@ -32,7 +33,7 @@ public class TimePickerDialogFragment extends DialogFragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.time_picker, container);
+        View view = inflater.inflate(R.layout.dialpad_picker, container);
         
         final EditText timerName = (EditText) view.findViewById(R.id.timerNameField);
         
@@ -63,7 +64,7 @@ public class TimePickerDialogFragment extends DialogFragment {
                     int sec = secPicker.getValue();
                     _handler.onTimeSetHandler(name, hour, min, sec);
                 }
-                TimePickerDialogFragment.this.dismiss();
+                DialpadPicker.this.dismiss();
             }
         });
         
@@ -72,7 +73,7 @@ public class TimePickerDialogFragment extends DialogFragment {
             
             @Override
             public void onClick(View v) {
-                TimePickerDialogFragment.this.dismiss();
+                DialpadPicker.this.dismiss();
             }
         });
         

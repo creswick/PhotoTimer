@@ -40,7 +40,7 @@ package com.ciscavate.android.phototimer;
  * @author creswick
  *
  */
-public enum TimerAction {
+public enum TimerActions {
     TIMER_ADDED,
     TIMER_REMOVED,
     TIMER_STOPPED,
