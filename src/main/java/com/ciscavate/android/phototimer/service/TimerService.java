@@ -1,7 +1,6 @@
 package com.ciscavate.android.phototimer.service;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 import android.app.Service;
@@ -17,20 +16,18 @@ import android.os.IBinder;
 import android.os.Vibrator;
 import android.util.Log;
 
-import com.ciscavate.android.phototimer.PhotoTimer;
 import com.ciscavate.android.phototimer.TimerActions;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public final class TimerService extends Service {
     
+    static final String TAG = "TimerService";
+    
     private final IBinder _binder = new LocalBinder();
-
-    private List<Timer> _timers = Lists.newArrayList();
 
     private Map<Timer, CountDownTimer> _countdowns = Maps.newHashMap();
 
-    private MediaPlayer _player;
+    private MediaPlayer _player = new MediaPlayer();
 
     private Vibrator _vibrator;
 
@@ -38,9 +35,15 @@ public final class TimerService extends Service {
     
     @Override
     public void onCreate(){
+        Log.d(TAG, "onCreate()");
         _vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
     }
     
+    @Override
+    public void onDestroy(){
+        Log.d(TAG, "onDestroy()");
+    }
+
     /**
      * Class used for the client Binder.  Because we know this service always
      * runs in the same process as its clients, we don't need to deal with IPC.
@@ -62,47 +65,28 @@ public final class TimerService extends Service {
         return _binder;
     }
     
-    public List<Timer> getTimers() {
-        return _timers;
-    }
-    
-    public void newTimer(String name, long duration) {
-        Timer t = Timer.newTimer(name, duration);
-        Log.i(PhotoTimer.TAG, "created timer: "+t);
-        _timers.add(t);
-        Log.i(PhotoTimer.TAG, _timers.size() + " timers in service.");
-        sendTimerBroadcast(TimerActions.TIMER_ADDED);
-    }
-    
-    public void removeTimer(Timer t) {
-        stopTimer(t);
-        if (_timers.remove(t)) {
-            Log.d(PhotoTimer.TAG, "Removed timer: "+t);
-        }
-        sendTimerBroadcast(TimerActions.TIMER_REMOVED);
-    }
-
     private void alarmTimer(Timer t) {
         t.setAlarmOn(true);
     }
     
-    public void stopAlarm(Timer t) {
-        _player.stop();
-        _vibrator.cancel();
-        
-        Timer timer = findTimer(t.getId());
-        timer.setAlarmOn(false);
-        sendTimerBroadcast(TimerActions.TIMER_ALARM_STOPPED);
-    }
-    
-    private void stopTimer(Timer t) {
-        if (t.isRunning()) {
-            toggleTimer(t.getId());
+    public void stopAlarm(Timer timer) {
+        if (timer.isRunning()) {
+            toggleTimer(timer);
         }
+        
+        if (null != _player) {
+            _player.stop();
+        }
+        
+        if (null != _vibrator) {
+            _vibrator.cancel();
+        }
+        
+        timer.setAlarmOn(false);
+        sendTimerBroadcast(TimerActions.TIMER_ALARM_STOPPED, timer);
     }
 
-    public void toggleTimer(int id) {
-        final Timer t = findTimer(id);
+    public void toggleTimer(final Timer t) {
         t.toggleRunning();
         
         if (t.isRunning()) {
@@ -111,30 +95,31 @@ public final class TimerService extends Service {
                 @Override
                 public void onTick(long millisUntilFinished) {
                     t.setRemaining(millisUntilFinished / 1000);
-                    Log.i(PhotoTimer.TAG, "Countdown, timer: "+t.getId() + " " + t.getRemaining() + " remaining");
-                    sendTimerBroadcast(TimerActions.TIMER_TICK);
+                    Log.i(TAG, "Countdown, timer: "+t.getId() + " " + t.getRemaining() + " remaining");
+                    sendTimerBroadcast(TimerActions.TIMER_TICK, t);
                 }
                 
                 @Override
                 public void onFinish() {
-                    Log.i(PhotoTimer.TAG, "BEEP BEEP BEEP");
+                    Log.i(TAG, "BEEP BEEP BEEP");
                     
                     playAlarm(t);
                     
                     t.toggleRunning();                    
-                    sendTimerBroadcast(TimerActions.ALARM_SOUNDING);
+                    sendTimerBroadcast(TimerActions.ALARM_SOUNDING, t);
                 }
             };
             _countdowns.put(t, cdTimer);
             cdTimer.start();
-            sendTimerBroadcast(TimerActions.TIMER_STARTED);
+            sendTimerBroadcast(TimerActions.TIMER_STARTED, t);
         } else {
             // disable the running alarms...
             CountDownTimer cdTimer = _countdowns.get(t);
-            cdTimer.cancel();
-            
+            if (null != cdTimer) {
+                cdTimer.cancel();
+            }
             _countdowns.remove(t);
-            sendTimerBroadcast(TimerActions.TIMER_STOPPED);
+            sendTimerBroadcast(TimerActions.TIMER_STOPPED, t);
         }
     }
 
@@ -153,12 +138,11 @@ public final class TimerService extends Service {
         // set the data store value:
         alarmTimer(timer);
         // ping the UI:
-        sendTimerBroadcast(TimerActions.ALARM_SOUNDING);
+        sendTimerBroadcast(TimerActions.ALARM_SOUNDING, timer);
         
         // NOW start being obnoxious:
         //Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), alert);
 
-        _player = new MediaPlayer();
         try {
             _player.setDataSource(getApplicationContext(), alert);
         } catch (IllegalArgumentException e) {
@@ -190,18 +174,10 @@ public final class TimerService extends Service {
         _player.start();
         _vibrator.vibrate(_vibratorPattern, 0);
     }
-
-    private Timer findTimer(int id) {
-        for (Timer t : _timers) {
-            if(t.getId() == id) {
-                return t;
-            }
-        }
-        throw new IllegalStateException("Timer does not exist: "+id);
-    }
-
-    private void sendTimerBroadcast(TimerActions action) {
+    
+    private void sendTimerBroadcast(TimerActions action, Timer timer) {
         Intent tick = new Intent();
+        tick.putExtra(Timer.class.toString(), timer.toJSON());
         tick.setAction(action.toString());
         sendBroadcast(tick);
     }

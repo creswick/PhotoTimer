@@ -1,5 +1,12 @@
 package com.ciscavate.android.phototimer;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.lang.reflect.Type;
 import java.util.List;
 
 import android.R.drawable;
@@ -35,10 +42,14 @@ import com.ciscavate.android.phototimer.service.Timer;
 import com.ciscavate.android.phototimer.service.TimerService;
 import com.ciscavate.android.phototimer.service.TimerService.LocalBinder;
 import com.google.common.collect.Lists;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 public final class PhotoTimer extends Activity implements ITimePickerHandler {
-    public static final String TAG = "PhotoTimer";
+    static final String TAG = "PhotoTimer";
 
+    private static final String TIMER_STORAGE_FILE = "timeStorage.json";
+    
     private TimerService mService;
     private boolean mBound = false;
     
@@ -62,7 +73,7 @@ public final class PhotoTimer extends Activity implements ITimePickerHandler {
 
     private ArrayAdapter<Timer> _timerListAdapter;
 
-    private final List<Timer> _timers = Lists.newArrayList();
+    private List<Timer> _timers = Lists.newArrayList();
 
     private BroadcastReceiver broadcastReceiver;
     
@@ -77,21 +88,38 @@ public final class PhotoTimer extends Activity implements ITimePickerHandler {
         broadcastReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
+                
                 Log.i(TAG, "received broadcast intent: "+intent);
+                String json = intent.getStringExtra(Timer.class.toString());
+                if (null == json) {
+                    Log.e(TAG, "Received null json timer string");
+                    return;
+                }
+                Timer timer = Timer.fromJSON(json);
                 switch (TimerActions.valueOf(intent.getAction())){
-                case TIMER_ADDED:
                 case TIMER_REMOVED:
+                    _timers.remove(timer);
+                    break;
+                case TIMER_ADDED:
+                    _timers.add(timer);
+                    break;
                 case TIMER_STOPPED:
                 case TIMER_ALARM_STOPPED:
                 case TIMER_STARTED:
                 case TIMER_TICK:
                 case ALARM_SOUNDING:
-                    updateTimerList();
+                    // yes, this is weird.  _timers will treat the timer object
+                    // as equal to something that's in the list alread, but 
+                    // other aspects of the timer object need updating, so we 
+                    // bump it out & in, then fire a UI update:
+                    if (_timers.remove(timer)) {
+                        _timers.add(timer);
+                    }
                     break;
                 default:
                     Log.e(TAG, "unknown broadcast intent action: "+ intent.getAction());
                 }
-                
+                updateTimerList();
             }
         };
         registerReceiver(broadcastReceiver, new IntentFilter(ifilter));
@@ -108,7 +136,8 @@ public final class PhotoTimer extends Activity implements ITimePickerHandler {
         super.onCreate(savedInstanceState);
         Log.i(TAG, "onCreate(...)");
         setContentView(R.layout.main);
-        
+        loadTimers();
+
         _timerListAdapter = new ArrayAdapter<Timer>(this, 
                         R.layout.row_layout, _timers) {
 
@@ -128,7 +157,7 @@ public final class PhotoTimer extends Activity implements ITimePickerHandler {
               delBtn.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    mService.removeTimer(timer);
+                    removeTimer(timer);
                 }
               });
               
@@ -207,6 +236,7 @@ public final class PhotoTimer extends Activity implements ITimePickerHandler {
     protected void onDestroy() {
         super.onDestroy();
         Log.i(TAG, "onDestroy()");
+        storeTimers();
     }
 
     @Override
@@ -263,9 +293,9 @@ public final class PhotoTimer extends Activity implements ITimePickerHandler {
         duration += (min * 60);
         duration += sec;
         
-        mService.newTimer(name, duration);
+        newTimer(name, duration);
     }
-
+    
     private void bindToService() {
         // Bind to TimerService
         Intent intent = new Intent(this, TimerService.class);
@@ -288,22 +318,112 @@ public final class PhotoTimer extends Activity implements ITimePickerHandler {
 
     private void toggleTimerRunning(Timer timer) {
         if (null != mService) {
-            mService.toggleTimer(timer.getId());
+            mService.toggleTimer(timer);
         }else {
             Log.d(TAG, "service is not bound");
         }
     }
-
+    
+    public void newTimer(String name, long duration) {
+        Timer t = Timer.newTimer(_timers, name, duration);
+        Log.i(TAG, "created timer: "+t);
+        _timers.add(t);
+        updateTimerList();
+        Log.i(TAG, _timers.size() + " timers exist.");
+    }
+    
     private void updateTimerList() {
-        if (null != mService) {
-            Log.d(TAG, "Updating timers");
-            _timers.clear();
-            _timers.addAll(mService.getTimers());
-            _timerListAdapter.notifyDataSetChanged();
-        } else {
-            Log.d(TAG, "sevrice is not bound");
+        _timerListAdapter.notifyDataSetChanged();
+    }
+
+    private void loadTimers() {
+        _timers.clear();
+        _timers.addAll(loadTimers(TIMER_STORAGE_FILE));
+    }
+    
+    private void storeTimers() {
+        storeTimers(_timers, TIMER_STORAGE_FILE);
+    }
+    
+    private void storeTimers(List<Timer> timers, String file) {
+        FileOutputStream out = null;  
+        OutputStreamWriter outWriter = null;
+        try {
+            out = openFileOutput(file, Context.MODE_PRIVATE);
+            
+            Gson gson = new Gson();
+            
+            String json = gson.toJson(timers);
+            outWriter = new OutputStreamWriter(out);
+            
+            outWriter.write(json);
+        } catch (FileNotFoundException e) {
+            Log.e(TAG, 
+                    "Could not find file to store timers: "+e.getMessage());
+        } catch (IOException e) {
+            Log.e(TAG, 
+                    "Exception writing timers to file: "+e.getMessage());
+        } finally {
+            if (null != outWriter) {
+                try {
+                    outWriter.close();
+                } catch (IOException e) {
+                    Log.e(TAG,
+                            "Exception closing writer: "+e.getMessage());
+                }
+            }
+            
+            if (null != out){
+                try {
+                    out.close();
+                } catch (IOException e) {
+                    Log.e(TAG,
+                            "IO Exception closing file after store: "+e.getMessage());
+                }
+            }
         }
     }
 
+    private List<Timer> loadTimers(String file) {
+        List<Timer> timers = null;
+        FileInputStream in = null;
+        try {
+            in = openFileInput(file);
+            Gson gson = new Gson();
+            
+            Type listType = new TypeToken<List<Timer>>() {}.getType();
+            timers = gson.fromJson(new InputStreamReader(in), listType);
+            
+        } catch (FileNotFoundException e) {
+            Log.d(TAG,
+                    "could not find timers file to load: "+e.getMessage());
+        } finally {
+            if (null != in) {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    Log.e(TAG,
+                            "IO Exception closing file after load: "+e.getMessage());
+                }
+            }
+        }
+        if (null == timers) {
+            if (null != _timers) {
+                timers = _timers;
+            } else {
+                timers = Lists.newArrayList();
+            }
+        }
+        return timers;
+    }
+
+    private void removeTimer(final Timer timer) {
+        // stop the alarm, just in case this timer is going off:
+        mService.stopAlarm(timer);
+        
+        _timers.remove(timer);
+        updateTimerList();
+    }
+    
 }
 

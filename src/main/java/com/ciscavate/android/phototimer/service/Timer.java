@@ -1,18 +1,27 @@
 package com.ciscavate.android.phototimer.service;
 
+import java.util.List;
 import java.util.Locale;
 
+import com.google.gson.Gson;
+
 public final class Timer {
-    private static int id_counter = 0;
     
-    public static synchronized Timer newTimer(String name, long duration) {
-        int id = id_counter ++;
+    public static synchronized Timer newTimer(List<Timer> timers, String name, long duration) {
+        int id = 0;
+        
+        for(Timer t : timers) {
+            id = Math.max(t.getId(), id);
+        }
+        id++;
+        
         return new Timer(name, duration, id);
     }
-
+    
     private final String _name;
     private final long _duration;
     private final int _id;
+
     private boolean _running = false;
     private long _remaining;
     private boolean _alarmOn = false;
@@ -63,6 +72,17 @@ public final class Timer {
                 + _id + "]";
     }
 
+    public String toJSON() {
+        Gson gson = new Gson();
+        return gson.toJson(this);
+    }
+    
+    public static Timer fromJSON(String json) {
+        Gson gson = new Gson();
+        // TODO see if this throws exceptions...
+        return gson.fromJson(json, Timer.class);
+    }
+    
     @Override
     public int hashCode() {
         final int prime = 31;
